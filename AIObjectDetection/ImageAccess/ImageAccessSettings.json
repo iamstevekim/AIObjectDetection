@@ -1,0 +1,9 @@
+{
+  "type": "FileSystem",
+  "fileSystemSettings": {
+    "sourceDirectory": ".\source",
+    "filter": "*.jpg",
+    "saveDirectory": ".\save",
+    "processExistingFiles": true
+  }
+}
