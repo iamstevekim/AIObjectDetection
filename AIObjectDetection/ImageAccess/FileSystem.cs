@@ -19,16 +19,16 @@ namespace AICore.ImageAccess
         public int file_access_delay = 10;
 
         private string SaveDirectory;
+        private string ErrorDirectory;
+        public FileSystem(FileSystemSettings settings) : this(settings.SourceDirectory, settings.Filter, settings.SaveDirectory, settings.ErrorDirectory, settings.ProcessExistingFiles) { }
 
-        public FileSystem(FileSystemSettings settings) : this(settings.SourceDirectory, settings.Filter, settings.SaveDirectory, settings.ProcessExistingFiles) { }
-
-        public FileSystem(string sourceDir, string filter, string saveDir, bool processExistingFiles = false) : base()
+        public FileSystem(string sourceDir, string filter, string saveDir, string errDir, bool processExistingFiles = false) : base()
         {
             if (processExistingFiles)
                 LoadExistingFiles(sourceDir, filter);
 
             SaveDirectory = saveDir;
-
+            ErrorDirectory = errDir;
             Watcher = new FileSystemWatcher();
             Watcher.Created += new FileSystemEventHandler(OnCreated);
             Watcher.Changed += new FileSystemEventHandler(OnChanged);
@@ -45,7 +45,7 @@ namespace AICore.ImageAccess
             FileInfo[] existingFiles = dir.GetFiles(filter);
             foreach (FileInfo file in existingFiles)
             {
-                FileList.Add(file.Name);
+                PendingIds.Add(file.Name);
             }
         }
 
@@ -100,7 +100,7 @@ namespace AICore.ImageAccess
 
         private void OnCreated(object source, FileSystemEventArgs e)
         {
-            FileList.Add(e.Name);
+            PendingIds.Add(e.Name);
             ImageAvailable(e.Name);
         }
 
@@ -114,19 +114,19 @@ namespace AICore.ImageAccess
         {
             string oldFileName = e.OldName;
             string newFileName = e.Name;
-            if (FileList.Contains(oldFileName))
-                FileList.Remove(oldFileName);
+            if (PendingIds.Contains(oldFileName))
+                PendingIds.Remove(oldFileName);
 
             // This will place the renamed file at the end of the list
-            FileList.Add(newFileName);
+            PendingIds.Add(newFileName);
             FileRenamed?.Invoke(oldFileName, newFileName);
         }
 
         private void OnDeleted(object source, FileSystemEventArgs e)
         {
             string fileName = e.Name;
-            if (FileList.Contains(fileName))
-                FileList.Remove(fileName);
+            if (PendingIds.Contains(fileName))
+                PendingIds.Remove(fileName);
 
             FileDeleted?.Invoke(fileName);
         }
@@ -183,28 +183,8 @@ namespace AICore.ImageAccess
             }
         }
 
-        public override bool TryGetImage(string fileName, out byte[] outImageBytes)
+        private bool TryMoveFile(string origFullPath, string destFullPath)
         {
-            if (FileList.Contains(fileName))
-                FileList.Remove(fileName);
-
-            string fullPath = Path.Combine(Watcher.Path, fileName);
-            return TryGetFile(fullPath, out outImageBytes);
-        }
-
-        public override bool TryRemoveImage(string fileName)
-        {
-            if (FileList.Contains(fileName))
-                FileList.Remove(fileName);
-
-            string fullPath = Path.Combine(Watcher.Path, fileName);
-            return TryRemoveFile(fullPath);
-        }
-
-        public override bool TrySaveImage(string fileName)
-        {
-            string origFullPath = Path.Combine(Watcher.Path, fileName);
-            string destFullPath = Path.Combine(SaveDirectory, fileName);
             if (origFullPath.Equals(destFullPath, StringComparison.OrdinalIgnoreCase))
                 return true;
 
@@ -218,6 +198,31 @@ namespace AICore.ImageAccess
             {
                 return false;
             }
+        }
+
+        public override bool TryGetImage(string fileName, out byte[] outImageBytes)
+        {
+            if (PendingIds.Contains(fileName))
+                PendingIds.Remove(fileName);
+
+            string fullPath = Path.Combine(Watcher.Path, fileName);
+            return TryGetFile(fullPath, out outImageBytes);
+        }
+
+        public override bool TryRemoveImage(string fileName)
+        {
+            if (PendingIds.Contains(fileName))
+                PendingIds.Remove(fileName);
+
+            string fullPath = Path.Combine(Watcher.Path, fileName);
+            return TryRemoveFile(fullPath);
+        }
+
+        public override bool TrySaveImage(string fileName)
+        {
+            string origFullPath = Path.Combine(Watcher.Path, fileName);
+            string destFullPath = Path.Combine(SaveDirectory, fileName);
+            return TryMoveFile(origFullPath, destFullPath);
         }
 
         public override bool TryGetMetaData(string fileName, out string outMetaData)
@@ -263,6 +268,13 @@ namespace AICore.ImageAccess
         {
             string fullPath = Path.Combine(SaveDirectory, fileName);
             return TryRemoveFile(fullPath);
+        }
+
+        public override bool TryErroredImage(string fileName)
+        {
+            string origFullPath = Path.Combine(Watcher.Path, fileName);
+            string destFullPath = Path.Combine(ErrorDirectory, fileName);
+            return TryMoveFile(origFullPath, destFullPath);
         }
     }
 }

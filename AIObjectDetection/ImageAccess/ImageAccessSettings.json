@@ -4,6 +4,7 @@
     "sourceDirectory": ".\source",
     "filter": "*.jpg",
     "saveDirectory": ".\save",
+    "errorDirectory": ".\error",
     "processExistingFiles": true
   }
 }

@@ -1,0 +1,16 @@
+{
+  "type": "tensorFlowSharp",
+  "deepStackSettings": {
+    "deepStackUrl": "127.0.0.1"
+  },
+  "tensorFlowSharpSettings": {
+    "modelDataFilePath": ".\model\model_640.pb",
+    "inputParameter": "Placeholder",
+    "outputParameters": [ "mul_6", "concat_9" ],
+    "labelsFilePath": ".\model\coco.names",
+    "processingImgWidth": 640,
+    "processingImgHeight": 640,
+    "minimumConfidence": 0.4,
+    "interestedLabelsFilePath": ".\model\interested.names"
+  }
+}

@@ -12,23 +12,27 @@ namespace AICore.ImageAccess
             ImageAvailableDelegate?.Invoke(id);
         }
 
-        protected List<string> FileList;
+        protected List<string> PendingIds;
 
         protected IImageAccess()
         {
-            FileList = new List<string>();
+            PendingIds = new List<string>();
         }
 
-        public string[] EnumerateImageIds()
+        public string[] EnumeratePendingIds()
         {
-            return FileList.ToArray();
+            return PendingIds.ToArray();
         }
+
+        // public abstract string[] SavedIds();
 
         public abstract bool TryGetImage(string id, out byte[] outImageBytes);
 
         public abstract bool TryRemoveImage(string id);
 
         public abstract bool TrySaveImage(string id);
+
+        public abstract bool TryErroredImage(string id);
 
         public abstract bool TryGetSavedImage(string id, out byte[] outImageBytes);
 

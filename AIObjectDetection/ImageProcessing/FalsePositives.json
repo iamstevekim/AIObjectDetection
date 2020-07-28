@@ -1,0 +1,13 @@
+{
+  "falsePositives": [
+    {
+      "label": "car",
+      "originalWidth": 3840,
+      "originalHeight": 2160,
+      "x1": 774,
+      "y1": 1813,
+      "x2": 898,
+      "y2": 1934
+    }
+  ]
+}

@@ -16,6 +16,11 @@ namespace AICore.ImageAccess
         public readonly ImageAccessType Type;
         [JsonProperty("fileSystemSettings")]
         public readonly FileSystemSettings FileSystemSettings;
+
+        public ImageAccessSettings()
+        {
+
+        }
     }
 
     class FileSystemSettings
@@ -26,6 +31,8 @@ namespace AICore.ImageAccess
         public readonly string Filter;
         [JsonProperty("saveDirectory")]
         public readonly string SaveDirectory;
+        [JsonProperty("errorDirectory")]
+        public readonly string ErrorDirectory;
         [JsonProperty("processExistingFiles")]
         public readonly bool ProcessExistingFiles;
 
@@ -34,6 +41,7 @@ namespace AICore.ImageAccess
             SourceDirectory = string.Empty;
             Filter = string.Empty;
             SaveDirectory = string.Empty;
+            ErrorDirectory = string.Empty;
             ProcessExistingFiles = false;
         }
     }
