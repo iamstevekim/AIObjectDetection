@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using AICore.ImageAccess;
 using AICore.ImageProcessing;
 using AICore.ObjectDetection;
+using AICore.Logging;
 
 namespace AICore
 {
@@ -17,8 +18,13 @@ namespace AICore
 
         private int ErrorCounter = 0;
 
+        private readonly ILogWriter ErrorLogWriter;
+        private readonly ILogWriter TraceLogWriter;
+
         public AIController()
         {
+            TraceLogWriter = new TraceLogWriter(RootDirectory, "AICore", 100000);
+
             InterestedObjects = InitializeInterestedObjects();
             ImgProcessor = InitializeImageProcessor();
             ImgAccess = InitializeImageAccessor();
@@ -197,10 +203,11 @@ namespace AICore
             Console.WriteLine("Error: " + msg);
         }
 
-        private void LogTrace(string msg)
+        private async void LogTrace(string msg)
         {
             // TODO: Need Log Writer
             Console.WriteLine("Trace: " + msg);
+            await TraceLogWriter.Log("Trace: " + msg);
         }
     }
 
