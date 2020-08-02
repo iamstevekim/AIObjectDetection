@@ -23,7 +23,8 @@ namespace AICore
 
         public AIController()
         {
-            TraceLogWriter = new TraceLogWriter(RootDirectory, "AICore", 100000);
+            ErrorLogWriter = new ErrorLogFileWriter(RootDirectory, "AICore", 500000);
+            TraceLogWriter = new TraceLogFileWriter(RootDirectory, "AICore", 100000);
 
             InterestedObjects = InitializeInterestedObjects();
             ImgProcessor = InitializeImageProcessor();
@@ -197,10 +198,11 @@ namespace AICore
 
         #endregion
 
-        private void LogError(string msg)
+        private async void LogError(string msg)
         {
             // TODO: Need Log Writer
             Console.WriteLine("Error: " + msg);
+            await ErrorLogWriter.Log("Error: " + msg);
         }
 
         private async void LogTrace(string msg)
