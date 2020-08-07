@@ -6,6 +6,7 @@ using AICore.ImageAccess;
 using AICore.ImageProcessing;
 using AICore.ObjectDetection;
 using AICore.Logging;
+using AICore.Notification;
 
 namespace AICore
 {
@@ -21,6 +22,7 @@ namespace AICore
         private readonly ILogWriter ErrorLogWriter;
         private readonly ILogWriter TraceLogWriter;
 
+        private readonly MqttNotification MqttNotifier;
         public AIController()
         {
             ErrorLogWriter = new ErrorLogFileWriter(RootDirectory, "AICore", 500000);
