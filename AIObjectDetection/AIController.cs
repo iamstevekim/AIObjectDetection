@@ -22,12 +22,13 @@ namespace AICore
         private readonly ILogWriter ErrorLogWriter;
         private readonly ILogWriter TraceLogWriter;
 
-        private readonly MqttNotification MqttNotifier;
+        private readonly INotification httpNotifier;
         public AIController()
         {
             ErrorLogWriter = new ErrorLogFileWriter(RootDirectory, "AICore", 500000);
             TraceLogWriter = new TraceLogFileWriter(RootDirectory, "AICore", 100000);
 
+            httpNotifier = InitializeNotifier();
             InterestedObjects = InitializeInterestedObjects();
             ImgProcessor = InitializeImageProcessor();
             ImgAccess = InitializeImageAccessor();
@@ -81,6 +82,11 @@ namespace AICore
             interestedObjects.Add("sports ball");
             interestedObjects.Add("baseball bat");
             return interestedObjects;
+        }
+
+        private INotification InitializeNotifier()
+        {
+            return NotificationFactory.CreateNotifier();
         }
 
         #region "Image Provider"

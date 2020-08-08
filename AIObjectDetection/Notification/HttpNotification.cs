@@ -5,10 +5,10 @@ using System.Threading.Tasks;
 
 namespace AICore.Notification
 {
-    class MqttNotification : INotification
+    class HttpNotification : INotification
     {
 
-        public MqttNotification()
+        public HttpNotification()
         {
 
         }
