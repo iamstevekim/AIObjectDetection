@@ -181,8 +181,10 @@ namespace AICore.ImageProcessing
                         float h = Math.Max(0, y2 - y1);
 
                         float area = w * h;
-                        float overlap = area / falsePositives[i].Area;
-                        if (overlap > .9f && overlap < 1.1f)
+                        //float overlap = area / falsePositives[i].Area;
+                        float overlap =  falsePositives[i].Area / area;
+                        //if (overlap > .9f && overlap < 1.1f)
+                        if (overlap > .9f)
                         {
                             //overlap detected
                             Console.WriteLine("False Positive Removed");
