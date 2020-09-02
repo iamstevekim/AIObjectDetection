@@ -83,7 +83,7 @@ namespace AICore.ImageProcessing
             Stopwatch totalProcessingTime = Stopwatch.StartNew();
             Stopwatch processImageTime = Stopwatch.StartNew();
 
-            ObjectDetection.Data.Output[] result = ObjectDetector.ProcessImageAsync(new ObjectDetection.Data.Input(imageData.ImageBytes, imageData.FileName)).Result;
+            ObjectDetection.Data.Output[] result = ObjectDetector.ProcessImageAsync(new ObjectDetection.Data.Input(imageData.ImageBytes, imageData.FileName, imageData.MinConfidence)).Result;
             //System.Console.WriteLine($"Obj Detect time: {processImageTime.Elapsed.TotalMilliseconds.ToString()}");
             processImageTime.Stop();
 

@@ -112,7 +112,7 @@ namespace AICore
         {
             if (ImgAccess.TryGetImage(id, out byte[] imageBytes))
             {
-                ImgProcessor.ProcessObjectDetection(new ImageData(imageBytes, id));
+                ImgProcessor.ProcessObjectDetection(new ImageData(imageBytes, id, 0.4f));
             }
             else
             {
@@ -225,10 +225,12 @@ namespace AICore
     {
         public byte[] ImageBytes { get; }
         public string FileName { get; }
-        public ImageData(byte[] imageBytes, string fileName)
+        public float MinConfidence { get; }
+        public ImageData(byte[] imageBytes, string fileName, float minConfidence)
         {
             ImageBytes = imageBytes;
             FileName = fileName;
+            MinConfidence = minConfidence;
         }
     }
 }

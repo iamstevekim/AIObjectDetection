@@ -63,7 +63,7 @@ namespace AICore.ObjectDetection.TensorFlowSharp
 
             TFTensor inputTensor = PrepareInput(image);
             TFTensor[] outputTensors = await Task.Run(() => ProcessImage(inputTensor));
-            Output[] objs = ProcessResult(outputTensors);
+            Output[] objs = ProcessResult(outputTensors, input.MinConfidence);
 
             if (objs.Length == 0)
                 return objs;
@@ -90,7 +90,7 @@ namespace AICore.ObjectDetection.TensorFlowSharp
             return runner.Run();
         }
 
-        private Output[] ProcessResult(TFTensor[] result)
+        private Output[] ProcessResult(TFTensor[] result, float minConfidence)
         {
             float[,,] matches = (float[,,])result[0].GetValue();
             float[,,] coordinates = (float[,,])result[1].GetValue();
@@ -105,7 +105,7 @@ namespace AICore.ObjectDetection.TensorFlowSharp
                     for (int index = 0; index < result[0].GetTensorDimension(1); index++)
                     {
                         var confidence = matches[0, index, labelIndex];
-                        if (confidence > MinThreshold)
+                        if (confidence > minConfidence)
                         {
                             // get all necessary values
                             if (!labelMatches.ContainsKey(confidence))
