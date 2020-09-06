@@ -229,7 +229,7 @@ namespace AICore.ImageProcessing
                     {
                         if (matchedIndex.Contains(j))
                         {
-                            break;
+                            continue;
                         }
                         // compare i against all of j
                         float xx1 = Math.Max(x_1, objsDetected[j].X1);
