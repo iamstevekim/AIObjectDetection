@@ -7,6 +7,7 @@ using AICore.ImageProcessing;
 using AICore.ObjectDetection;
 using AICore.Logging;
 using AICore.Notification;
+using AICore.Cameras;
 
 namespace AICore
 {
@@ -16,6 +17,7 @@ namespace AICore
         private readonly IImageAccess ImgAccess;
         private readonly ImageProcessor ImgProcessor;
         private readonly HashSet<string> InterestedObjects;
+        private readonly CameraManagement CameraManager;
 
         private int ErrorCounter = 0;
 
@@ -29,6 +31,7 @@ namespace AICore
             TraceLogWriter = new TraceLogFileWriter(RootDirectory, "AICore", 100000);
 
             httpNotifier = InitializeNotifier();
+            CameraManager = InitializeCameraManager();
             InterestedObjects = InitializeInterestedObjects();
             ImgProcessor = InitializeImageProcessor();
             ImgAccess = InitializeImageAccessor();
@@ -89,6 +92,16 @@ namespace AICore
             return NotificationFactory.CreateNotifier();
         }
 
+        private CameraManagement InitializeCameraManager()
+        {
+            string cameraSettingsFullPath = Path.Combine(RootDirectory, "Cameras", CameraManagement.CameraSettingsFileName);
+            string cameraSettingsStr = File.ReadAllText(cameraSettingsFullPath);
+            cameraSettingsStr = cameraSettingsStr.Replace("\\", "\\\\");
+            CameraSettings settings = Newtonsoft.Json.JsonConvert.DeserializeObject<CameraSettings>(cameraSettingsStr);
+            CameraManagement cameraManager = new CameraManagement(settings);
+            return cameraManager;
+        }
+
         #region "Image Provider"
 
         private void ImageAvailable(string id)
@@ -112,7 +125,8 @@ namespace AICore
         {
             if (ImgAccess.TryGetImage(id, out byte[] imageBytes))
             {
-                ImgProcessor.ProcessObjectDetection(new ImageData(imageBytes, id, 0.4f));
+                Camera c = CameraManager.GetCamera(id);
+                ImgProcessor.ProcessObjectDetection(new ImageData(imageBytes, id, c.MinConfidence, c.FalsePositives, c.LastDetectedObjs));
             }
             else
             {
@@ -226,11 +240,15 @@ namespace AICore
         public byte[] ImageBytes { get; }
         public string FileName { get; }
         public float MinConfidence { get; }
-        public ImageData(byte[] imageBytes, string fileName, float minConfidence)
+        public SortedList<string, List<FalsePositive>> FalsePositives { get; }
+        public ObjectDetection.Data.Output[] LastDetectedObjs;
+        public ImageData(byte[] imageBytes, string fileName, float minConfidence, SortedList<string, List<FalsePositive>> falsePositives, ObjectDetection.Data.Output[] lastDetectedObjs)
         {
             ImageBytes = imageBytes;
             FileName = fileName;
             MinConfidence = minConfidence;
+            FalsePositives = falsePositives;
+            LastDetectedObjs = lastDetectedObjs;
         }
     }
 }

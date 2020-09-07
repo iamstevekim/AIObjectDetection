@@ -19,8 +19,8 @@ namespace AICore.ImageProcessing
         private ObjectDetection.IObjectDetection ObjectDetector;
 
         private Queue ImagesToProcess;  // Do not iterate and remove from the Queue manually. 
-        private SortedList<string, List<FalsePositive>> FalsePositives;
-        private ObjectDetection.Data.Output[] LastDetectedObjs;
+        //private SortedList<string, List<FalsePositive>> FalsePositives;
+        //private ObjectDetection.Data.Output[] LastDetectedObjs;
 
         private bool IsProcessingThreadRunning;
         private Thread ImgProcessingThread;
@@ -29,16 +29,16 @@ namespace AICore.ImageProcessing
         {
             ImagesToProcess = Queue.Synchronized(new Queue());
 
-            FalsePositives = new SortedList<string, List<FalsePositive>>();
-            foreach (FalsePositive falsePositive in falsePositives.Items)
-            {
-                if (!FalsePositives.ContainsKey(falsePositive.Label))
-                    FalsePositives.Add(falsePositive.Label, new List<FalsePositive>());
+            //FalsePositives = new SortedList<string, List<FalsePositive>>();
+            //foreach (FalsePositive falsePositive in falsePositives.Items)
+            //{
+            //    if (!FalsePositives.ContainsKey(falsePositive.Label))
+            //        FalsePositives.Add(falsePositive.Label, new List<FalsePositive>());
 
-                FalsePositives[falsePositive.Label].Add(falsePositive);
-            }
+            //    FalsePositives[falsePositive.Label].Add(falsePositive);
+            //}
 
-            LastDetectedObjs = new ObjectDetection.Data.Output[] { };
+            //LastDetectedObjs = new ObjectDetection.Data.Output[] { };
             ObjectDetector = objectDetector;
         }
 
@@ -87,7 +87,7 @@ namespace AICore.ImageProcessing
             //System.Console.WriteLine($"Obj Detect time: {processImageTime.Elapsed.TotalMilliseconds.ToString()}");
             processImageTime.Stop();
 
-            result = PostProcessing(result);
+            result = PostProcessing(imageData, result);
 
             totalProcessingTime.Stop();
             Console.WriteLine($"Object Detection Processing Time: {processImageTime.Elapsed.TotalMilliseconds} total time: {totalProcessingTime.Elapsed.TotalMilliseconds} ");
@@ -96,7 +96,7 @@ namespace AICore.ImageProcessing
             ObjectDetectionResult?.Invoke(imageData, result);
         }
 
-        private ObjectDetection.Data.Output[] PostProcessing(ObjectDetection.Data.Output[] objsDetected)
+        private ObjectDetection.Data.Output[] PostProcessing(ImageData imageData, ObjectDetection.Data.Output[] objsDetected)
         {
             //Work in progress
             //List<ObjectDetection.Data.Output> returnObjs = new List<ObjectDetection.Data.Output>(objsDetected);
@@ -113,76 +113,76 @@ namespace AICore.ImageProcessing
             //    // remove objects from last detection set
             //}
 
-            objsDetected = RemoveFalsePositives(objsDetected);
+            objsDetected = RemoveFalsePositives(imageData.FalsePositives, objsDetected);
 
-            objsDetected = RemovePreviouslyDetectedStationaryObjects(objsDetected);
+            objsDetected = RemovePreviouslyDetectedStationaryObjects(ref imageData.LastDetectedObjs, objsDetected);
 
             return objsDetected;
         }
 
         private bool IsFalsePositive(ObjectDetection.Data.Output detectedObj)
         {
-            if (!FalsePositives.ContainsKey(detectedObj.Label))
-            {
-                return false;
-            }
+            //if (!FalsePositives.ContainsKey(detectedObj.Label))
+            //{
+            //    return false;
+            //}
 
-            List<FalsePositive> falsePositives = FalsePositives[detectedObj.Label];
-            for (int i = 0; i < falsePositives.Count; i++)
-            {
-                var w = falsePositives[i].X2 - falsePositives[i].X1;
-                var h = falsePositives[i].Y2 - falsePositives[i].Y1;
+            //List<FalsePositive> falsePositives = FalsePositives[detectedObj.Label];
+            //for (int i = 0; i < falsePositives.Count; i++)
+            //{
+            //    var w = falsePositives[i].X2 - falsePositives[i].X1;
+            //    var h = falsePositives[i].Y2 - falsePositives[i].Y1;
 
-                float fpArea = w * h;
+            //    float fpArea = w * h;
 
-                var x = Math.Min(falsePositives[i].X1, detectedObj.X1);
-                var y = Math.Min(falsePositives[i].Y1, detectedObj.Y1);
-                var x2 = Math.Max(falsePositives[i].X2, detectedObj.X2);
-                var y2 = Math.Max(falsePositives[i].Y2, detectedObj.Y2);
+            //    var x = Math.Min(falsePositives[i].X1, detectedObj.X1);
+            //    var y = Math.Min(falsePositives[i].Y1, detectedObj.Y1);
+            //    var x2 = Math.Max(falsePositives[i].X2, detectedObj.X2);
+            //    var y2 = Math.Max(falsePositives[i].Y2, detectedObj.Y2);
 
-                var ww = Math.Max(0, x2 - x);
-                var hh = Math.Max(0, y2 - y);
+            //    var ww = Math.Max(0, x2 - x);
+            //    var hh = Math.Max(0, y2 - y);
 
-                var area = ww * hh;
-                var overlap = area / fpArea;
-                if (overlap > .9f && overlap < 1.1f)
-                {
-                    //overlap detected
-                    Console.WriteLine("False Positive Removed");
-                    LogTrace($"[IsFalsePositive] False Positive Detected: {detectedObj.Label} Confidence: {detectedObj.Confidence} X1: {detectedObj.X1} Y1: {detectedObj.Y1} X2: {detectedObj.X2} Y2: {detectedObj.Y2}");
-                    return true;
-                }
-            }
+            //    var area = ww * hh;
+            //    var overlap = area / fpArea;
+            //    if (overlap > .9f && overlap < 1.1f)
+            //    {
+            //        //overlap detected
+            //        Console.WriteLine("False Positive Removed");
+            //        LogTrace($"[IsFalsePositive] False Positive Detected: {detectedObj.Label} Confidence: {detectedObj.Confidence} X1: {detectedObj.X1} Y1: {detectedObj.Y1} X2: {detectedObj.X2} Y2: {detectedObj.Y2}");
+            //        return true;
+            //    }
+            //}
 
             return false;
         }
 
-        private ObjectDetection.Data.Output[] RemoveFalsePositives(ObjectDetection.Data.Output[] objsDetected)
+        private ObjectDetection.Data.Output[] RemoveFalsePositives(SortedList<string, List<FalsePositive>> falsePositives, ObjectDetection.Data.Output[] objsDetected)
         {
             List<ObjectDetection.Data.Output> returnObjs = new List<ObjectDetection.Data.Output>(objsDetected);
             foreach (ObjectDetection.Data.Output objDetected in objsDetected)
             {
-                if (!FalsePositives.ContainsKey(objDetected.Label))
+                if (!falsePositives.ContainsKey(objDetected.Label))
                 {
                     continue;
                 }
-                List<FalsePositive> falsePositives = FalsePositives[objDetected.Label];
+                List<FalsePositive> fp = falsePositives[objDetected.Label];
 
-                for (int i = 0; i < falsePositives.Count; i++)
+                for (int i = 0; i < fp.Count; i++)
                 {
                     for (int j = returnObjs.Count - 1; j >= 0; j--)
                     {
-                        float x1 = Math.Min(falsePositives[i].X1, returnObjs[j].X1);
-                        float y1 = Math.Min(falsePositives[i].Y1, returnObjs[j].Y1);
-                        float x2 = Math.Max(falsePositives[i].X2, returnObjs[j].X2);
-                        float y2 = Math.Max(falsePositives[i].Y2, returnObjs[j].Y2);
+                        float x1 = Math.Min(fp[i].X1, returnObjs[j].X1);
+                        float y1 = Math.Min(fp[i].Y1, returnObjs[j].Y1);
+                        float x2 = Math.Max(fp[i].X2, returnObjs[j].X2);
+                        float y2 = Math.Max(fp[i].Y2, returnObjs[j].Y2);
 
                         float w = Math.Max(0, x2 - x1);
                         float h = Math.Max(0, y2 - y1);
 
                         float area = w * h;
                         //float overlap = area / falsePositives[i].Area;
-                        float overlap =  falsePositives[i].Area / area;
+                        float overlap = fp[i].Area / area;
                         //if (overlap > .9f && overlap < 1.1f)
                         if (overlap > .9f)
                         {
@@ -199,27 +199,27 @@ namespace AICore.ImageProcessing
             return returnObjs.ToArray();
         }
 
-        private ObjectDetection.Data.Output[] RemovePreviouslyDetectedStationaryObjects(ObjectDetection.Data.Output[] objsDetected)
+        private ObjectDetection.Data.Output[] RemovePreviouslyDetectedStationaryObjects(ref ObjectDetection.Data.Output[] lastDetectedObjs, ObjectDetection.Data.Output[] objsDetected)
         {
             if (objsDetected.Length == 0)
             {
                 // do nothing
             }
-            else if (LastDetectedObjs.Length == 0)
+            else if (lastDetectedObjs.Length == 0)
             {
                 LogTrace($"[RemovePreviouslyDetectedStationaryObjects] New Last Detected Objects");
-                LastDetectedObjs = objsDetected.ToArray();
+                lastDetectedObjs = objsDetected.ToArray();
             }
             else
             {
                 HashSet<int> matchedIndex = new HashSet<int>();
                 // Compare labels and object detections
-                for (int i = 0; i < LastDetectedObjs.Length; i++)
+                for (int i = 0; i < lastDetectedObjs.Length; i++)
                 {
-                    float x_1 = LastDetectedObjs[i].X1;
-                    float y_1 = LastDetectedObjs[i].Y1;
-                    float x_2 = LastDetectedObjs[i].X2;
-                    float y_2 = LastDetectedObjs[i].Y2;
+                    float x_1 = lastDetectedObjs[i].X1;
+                    float y_1 = lastDetectedObjs[i].Y1;
+                    float x_2 = lastDetectedObjs[i].X2;
+                    float y_2 = lastDetectedObjs[i].Y2;
 
                     float w = x_2 - x_1;
                     float h = y_2 - y_1;
@@ -256,12 +256,12 @@ namespace AICore.ImageProcessing
                         break;
                     }
                 }
-                if (matchedIndex.Count == LastDetectedObjs.Length)
+                if (matchedIndex.Count == lastDetectedObjs.Length)
                     objsDetected = new ObjectDetection.Data.Output[] { };
                 else
                 {
                     LogTrace($"[RemovePreviouslyDetectedStationaryObjects] New Last Detected Objects");
-                    LastDetectedObjs = objsDetected.ToArray();
+                    lastDetectedObjs = objsDetected.ToArray();
                 }
 
             }

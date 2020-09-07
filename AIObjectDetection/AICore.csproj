@@ -45,6 +45,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="Cameras\CameraSettings.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="ImageAccess\ImageAccessSettings.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
