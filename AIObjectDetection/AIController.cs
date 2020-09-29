@@ -35,21 +35,19 @@ namespace AICore
             InterestedObjects = InitializeInterestedObjects();
             ImgProcessor = InitializeImageProcessor();
             ImgAccess = InitializeImageAccessor();
+
+            LoadNextAvailableImage();
         }
 
         private ImageProcessor InitializeImageProcessor()
         {
-            string objectDetectionSettingsFullpath = Path.Combine(RootDirectory, "ObjectDetection", ObjectDetectionFactory.ObjectDetectionSettingsFileName);
+            string objectDetectionSettingsFullpath = Path.Combine(RootDirectory, ObjectDetectionFactory.ObjectDetectionSettingsFileName);
             string objectDetectionSettingsStr = File.ReadAllText(objectDetectionSettingsFullpath);
             objectDetectionSettingsStr = objectDetectionSettingsStr.Replace("\\", "\\\\");
             ObjectDetectionSettings settings = Newtonsoft.Json.JsonConvert.DeserializeObject<ObjectDetectionSettings>(objectDetectionSettingsStr);
             IObjectDetection objDetector = ObjectDetectionFactory.CreateObjectDetector(settings);
 
-            string falsePositivesFullPath = Path.Combine(RootDirectory, "ImageProcessing", "FalsePositives.json");
-            string falsePositivesStr = File.ReadAllText(falsePositivesFullPath);
-            FalsePositives falsePositives = Newtonsoft.Json.JsonConvert.DeserializeObject<FalsePositives>(falsePositivesStr);
-
-            ImageProcessor imgProcessor = new ImageProcessor(objDetector, falsePositives);
+            ImageProcessor imgProcessor = new ImageProcessor(objDetector);
             imgProcessor.ObjectDetectionResult += ObjectDetectionResult;
             imgProcessor.LogErrorDelegate += LogError;
             imgProcessor.LogTraceDelegate += LogTrace;
@@ -59,7 +57,7 @@ namespace AICore
 
         private IImageAccess InitializeImageAccessor()
         {
-            string imageAccessSettingsFullPath = Path.Combine(RootDirectory, "ImageAccess", ImageAccessFactory.ImageAccessSettingsFileName);
+            string imageAccessSettingsFullPath = Path.Combine(RootDirectory, ImageAccessFactory.ImageAccessSettingsFileName);
             string imageAccessSettingsStr = File.ReadAllText(imageAccessSettingsFullPath);
             imageAccessSettingsStr = imageAccessSettingsStr.Replace("\\", "\\\\");
             ImageAccessSettings settings = Newtonsoft.Json.JsonConvert.DeserializeObject<ImageAccessSettings>(imageAccessSettingsStr);
@@ -94,7 +92,7 @@ namespace AICore
 
         private CameraManagement InitializeCameraManager()
         {
-            string cameraSettingsFullPath = Path.Combine(RootDirectory, "Cameras", CameraManagement.CameraSettingsFileName);
+            string cameraSettingsFullPath = Path.Combine(RootDirectory, CameraManagement.CameraSettingsFileName);
             string cameraSettingsStr = File.ReadAllText(cameraSettingsFullPath);
             cameraSettingsStr = cameraSettingsStr.Replace("\\", "\\\\");
             CameraSettings settings = Newtonsoft.Json.JsonConvert.DeserializeObject<CameraSettings>(cameraSettingsStr);
@@ -106,7 +104,7 @@ namespace AICore
 
         private void ImageAvailable(string id)
         {
-            Console.WriteLine($"File {id} available for processing");
+            //Console.WriteLine($"File {id} available for processing");
 
             // Optional - Check associated camera before processing image
             //            If no check is made, potential to process images for an non existent camera
@@ -126,7 +124,13 @@ namespace AICore
             if (ImgAccess.TryGetImage(id, out byte[] imageBytes))
             {
                 Camera c = CameraManager.GetCamera(id);
-                ImgProcessor.ProcessObjectDetection(new ImageData(imageBytes, id, c.MinConfidence, c.FalsePositives, c.LastDetectedObjs));
+                if (c != null)
+                    ImgProcessor.ProcessObjectDetection(new ImageData(imageBytes, id, c.MinConfidence, c.FalsePositives, c.LastDetectedObjs));
+                else
+                {
+                    ImgAccess.TryErroredImage(id);
+                    LoadNextAvailableImage();
+                }    
             }
             else
             {
@@ -139,6 +143,9 @@ namespace AICore
         {
             // Get camera info based on filename
             bool result = HandleObjectDetectionResult(imageData, output);
+            Camera c = CameraManager.GetCamera(imageData.Id);
+            if (c != null)
+                c.LastDetectedObjs = imageData.LastDetectedObjs;
 
             // Processing an Image is complete - Get next image if File Processor has queued items
             if (result)
@@ -160,20 +167,20 @@ namespace AICore
         {
             if (output == null)
             {
-                Console.WriteLine($"Error during Image processing for file: {imageData.FileName}");
-                LogError($"Error during Image processing for file: {imageData.FileName}");
+                Console.WriteLine($"Error during Image processing for file: {imageData.Id}");
+                LogError($"Error during Image processing for file: {imageData.Id}");
                 if (ErrorCounter >= 100)
                 {
                     Console.WriteLine("Error Counter exceeded, deleting errored file.");
                     LogError("Error Counter exceeded, deleting errored file.");
-                    ImgAccess.TryRemoveImage(imageData.FileName);
+                    ImgAccess.TryRemoveImage(imageData.Id);
                 }
                 else
                 {
                     ErrorCounter++;
                     // Move file to examine later
                     LogError("Moved file to error folder.");
-                    ImgAccess.TryErroredImage(imageData.FileName);
+                    ImgAccess.TryErroredImage(imageData.Id);
                 }
                 return false;
             }
@@ -182,7 +189,7 @@ namespace AICore
                 if (output.Length == 0)
                 {
                     // Debug.WriteLine($"No objects found in file: {imageData.FileName} - deleting file");
-                    ImgAccess.TryRemoveImage(imageData.FileName);
+                    ImgAccess.TryRemoveImage(imageData.Id);
                 }
                 else
                 {
@@ -200,18 +207,18 @@ namespace AICore
 
                     if (interestedObjectDetected)
                     {
-                        Console.WriteLine($"Objects of interest detected in file: {imageData.FileName} - saving file for review");
-                        LogError($"Objects of interest detected in file: {imageData.FileName} - saving file for review");
-                        ImgAccess.TrySaveImage(imageData.FileName);
+                        Console.WriteLine($"Objects of interest detected in file: {imageData.Id} - saving file for review");
+                        LogError($"Objects of interest detected in file: {imageData.Id} - saving file for review");
+                        ImgAccess.TrySaveImage(imageData.Id);
                         string result = Newtonsoft.Json.JsonConvert.SerializeObject(output);
-                        string jsonFileName = Path.GetFileNameWithoutExtension(imageData.FileName) + ".json";
+                        string jsonFileName = Path.GetFileNameWithoutExtension(imageData.Id) + ".json";
                         ImgAccess.TrySaveMetaData(jsonFileName, result);
                     }
                     else
                     {
                         //Console.WriteLine($"No objects of interest detected in file: {imageData.FileName} - Objects found: {string.Join(",",objects.ToArray())} - deleting file");
                         //logWriter.Log($"No objects of interest detected in file: {imageData.FileName} - Objects found: {string.Join(",", objects.ToArray())} - deleting file");
-                        ImgAccess.TryRemoveImage(imageData.FileName);
+                        ImgAccess.TryRemoveImage(imageData.Id);
                     }
                 }
                 return true;
@@ -238,14 +245,14 @@ namespace AICore
     class ImageData
     {
         public byte[] ImageBytes { get; }
-        public string FileName { get; }
+        public string Id { get; }
         public float MinConfidence { get; }
         public SortedList<string, List<FalsePositive>> FalsePositives { get; }
         public ObjectDetection.Data.Output[] LastDetectedObjs;
-        public ImageData(byte[] imageBytes, string fileName, float minConfidence, SortedList<string, List<FalsePositive>> falsePositives, ObjectDetection.Data.Output[] lastDetectedObjs)
+        public ImageData(byte[] imageBytes, string id, float minConfidence, SortedList<string, List<FalsePositive>> falsePositives, ObjectDetection.Data.Output[] lastDetectedObjs)
         {
             ImageBytes = imageBytes;
-            FileName = fileName;
+            Id = id;
             MinConfidence = minConfidence;
             FalsePositives = falsePositives;
             LastDetectedObjs = lastDetectedObjs;

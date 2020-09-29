@@ -41,9 +41,16 @@ namespace AICore.ImageAccess
 
         private void LoadExistingFiles(string path, string filter)
         {
+            
             DirectoryInfo dir = new DirectoryInfo(path);
-            FileInfo[] existingFiles = dir.GetFiles(filter);
-            foreach (FileInfo file in existingFiles)
+            FileSystemInfo[] existingFiles = dir.GetFileSystemInfos(filter);
+            Array.Sort<FileSystemInfo>(existingFiles, 
+                delegate (FileSystemInfo a, FileSystemInfo b)
+                {
+                return a.LastWriteTime.CompareTo(b.LastWriteTime);
+                });
+            
+            foreach (FileSystemInfo file in existingFiles)
             {
                 PendingIds.Add(file.Name);
             }

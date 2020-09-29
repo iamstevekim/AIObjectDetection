@@ -19,26 +19,14 @@ namespace AICore.ImageProcessing
         private ObjectDetection.IObjectDetection ObjectDetector;
 
         private Queue ImagesToProcess;  // Do not iterate and remove from the Queue manually. 
-        //private SortedList<string, List<FalsePositive>> FalsePositives;
-        //private ObjectDetection.Data.Output[] LastDetectedObjs;
 
         private bool IsProcessingThreadRunning;
         private Thread ImgProcessingThread;
 
-        public ImageProcessor(ObjectDetection.IObjectDetection objectDetector, FalsePositives falsePositives)
+        public ImageProcessor(ObjectDetection.IObjectDetection objectDetector)
         {
             ImagesToProcess = Queue.Synchronized(new Queue());
 
-            //FalsePositives = new SortedList<string, List<FalsePositive>>();
-            //foreach (FalsePositive falsePositive in falsePositives.Items)
-            //{
-            //    if (!FalsePositives.ContainsKey(falsePositive.Label))
-            //        FalsePositives.Add(falsePositive.Label, new List<FalsePositive>());
-
-            //    FalsePositives[falsePositive.Label].Add(falsePositive);
-            //}
-
-            //LastDetectedObjs = new ObjectDetection.Data.Output[] { };
             ObjectDetector = objectDetector;
         }
 
@@ -83,7 +71,7 @@ namespace AICore.ImageProcessing
             Stopwatch totalProcessingTime = Stopwatch.StartNew();
             Stopwatch processImageTime = Stopwatch.StartNew();
 
-            ObjectDetection.Data.Output[] result = ObjectDetector.ProcessImageAsync(new ObjectDetection.Data.Input(imageData.ImageBytes, imageData.FileName, imageData.MinConfidence)).Result;
+            ObjectDetection.Data.Output[] result = ObjectDetector.ProcessImageAsync(new ObjectDetection.Data.Input(imageData.ImageBytes, imageData.Id, imageData.MinConfidence)).Result;
             //System.Console.WriteLine($"Obj Detect time: {processImageTime.Elapsed.TotalMilliseconds.ToString()}");
             processImageTime.Stop();
 
@@ -98,21 +86,6 @@ namespace AICore.ImageProcessing
 
         private ObjectDetection.Data.Output[] PostProcessing(ImageData imageData, ObjectDetection.Data.Output[] objsDetected)
         {
-            //Work in progress
-            //List<ObjectDetection.Data.Output> returnObjs = new List<ObjectDetection.Data.Output>(objsDetected);
-            //for (int i=returnObjs.Count-1; i<0; i--)
-            //{
-            //    // remove false positives
-            //    if (IsFalsePositive(returnObjs[i]))
-            //    {
-            //        // remove from list 
-            //        returnObjs.RemoveAt(i);
-            //        continue;
-            //    }
-
-            //    // remove objects from last detection set
-            //}
-
             objsDetected = RemoveFalsePositives(imageData.FalsePositives, objsDetected);
 
             objsDetected = RemovePreviouslyDetectedStationaryObjects(ref imageData.LastDetectedObjs, objsDetected);

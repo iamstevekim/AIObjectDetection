@@ -33,6 +33,7 @@ namespace AICore.Cameras
         public Camera()
         {
             FalsePositives = new SortedList<string, List<ImageProcessing.FalsePositive>>();
+            LastDetectedObjs = new ObjectDetection.Data.Output[0];
         }
     }
 }
